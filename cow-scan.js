@@ -101,11 +101,9 @@ async function filterByExtension(extension) {
     console.log(`\n✅ Paths with extension '${extension}':\n`, filtered);
 }
 
-// Compare responses
+// Compare responses to identify valid params
 async function compareResponses(baselineText, url, param) {
     try {
-		url = url.replace(baseUrl, ""); // strip baseUrl if from crawler
-
         const singleGetUrl = `${url}?${param}=test`;
         const getResponse = await fetch(singleGetUrl);
         const getText = await getResponse.text();
@@ -120,15 +118,19 @@ async function compareResponses(baselineText, url, param) {
     }
 }
 
-// Mine parameters
+// Mine parameters using multiple threads
 async function mineParams(url) {
     console.log(`\n🔎 Mining params on: ${url}`);
+    const baselineResponse = await fetch(url);
+    const baselineText = await baselineResponse.text();
 
-	const baselineResponse = await fetch(url);
-	const baselineText = await baselineResponse.text();
-		
-    for (const param of paramList) {
-        await compareResponses(baselineText, url, param);
+    let index = 0;
+    while (index < paramList.length) {
+        const batch = paramList.slice(index, index + THREAD_LIMIT).map(param =>
+            compareResponses(baselineText, url, param)
+        );
+        await Promise.all(batch); // Run batch concurrently
+        index += THREAD_LIMIT;
     }
 
     console.log(`\n✅ Param Mining Results:`);
@@ -136,7 +138,6 @@ async function mineParams(url) {
         console.log(`🔹 ${path} -> ${params.join(", ")}`);
     }
 }
-
 
 // Sub-menu for mining params
 async function mineParamsMenu() {	
