@@ -102,11 +102,9 @@ async function filterByExtension(extension) {
 }
 
 // Compare responses
-async function compareResponses(url, param) {
+async function compareResponses(baselineText, url, param) {
     try {
 		url = url.replace(baseUrl, ""); // strip baseUrl if from crawler
-        const baselineResponse = await fetch(url);
-        const baselineText = await baselineResponse.text();
 
         const singleGetUrl = `${url}?${param}=test`;
         const getResponse = await fetch(singleGetUrl);
@@ -126,8 +124,11 @@ async function compareResponses(url, param) {
 async function mineParams(url) {
     console.log(`\n🔎 Mining params on: ${url}`);
 
+	const baselineResponse = await fetch(url);
+	const baselineText = await baselineResponse.text();
+		
     for (const param of paramList) {
-        await compareResponses(url, param);
+        await compareResponses(baselineText, url, param);
     }
 
     console.log(`\n✅ Param Mining Results:`);
