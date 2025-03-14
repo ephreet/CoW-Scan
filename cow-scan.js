@@ -101,18 +101,27 @@ async function filterByExtension(extension) {
     console.log(`\n✅ Paths with extension '${extension}':\n`, filtered);
 }
 
-// Compare responses to identify valid params
+// Compare responses to identify valid params with randomization
 async function compareResponses(baselineText, url, param) {
     try {
+        // Randomize the value of the parameter
+        const randomizedValue = Math.random().toString(36).substring(2, 15); // generates a random string
+
         // GET check
-        const singleGetUrl = `${url}?${param}=test`;
+        const singleGetUrl = `${url}?${param}=${randomizedValue}`;
         const getResponse = await fetch(singleGetUrl);
         const getText = await getResponse.text();
 
         if (getResponse.ok && baselineText !== getText) {
             console.log(`🚀 Discovered param: ${singleGetUrl} [GET]`);
-            if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-            paramMiningResults.get(url).push(`${param} (GET)`);
+
+            // Check if the parameter is reflected
+            if (getText.includes(randomizedValue)) {
+                console.log(`💥 Parameter ${param} is reflected in the response [GET]`);
+            } else {
+                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+                paramMiningResults.get(url).push(`${param} (GET)`);
+            }
         }
 
         // POST check
@@ -121,19 +130,26 @@ async function compareResponses(baselineText, url, param) {
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
             },
-            body: `${param}=test`
+            body: `${param}=${randomizedValue}`
         });
         const postText = await postResponse.text();
 
         if (postResponse.ok && baselineText !== postText) {
-            console.log(`🚀 Discovered param: ${url} [POST] with body '${param}=test'`);
-            if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-            paramMiningResults.get(url).push(`${param} (POST)`);
+            console.log(`🚀 Discovered param: ${url} [POST] with body '${param}=${randomizedValue}'`);
+
+            // Check if the parameter is reflected
+            if (postText.includes(randomizedValue)) {
+                console.log(`💥 Parameter ${param} is reflected in the response [POST]`);
+            } else {
+                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+                paramMiningResults.get(url).push(`${param} (POST)`);
+            }
         }
     } catch (error) {
         console.error(`❌ Error comparing response: ${error.message}`);
     }
 }
+
 
 
 // Mine parameters using multiple threads
