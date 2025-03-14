@@ -31,6 +31,15 @@ Open your browser's developer console (F12 or Ctrl + Shift + I).
 
 Copy and paste the CoW-Scan script into the console.
 
+**OR**
+
+```
+fetch('https://raw.githubusercontent.com/ephreet/CoW-Scan/refs/heads/main/cow-scan.js')
+  .then(response => response.text())
+  .then(script => eval(script))
+  .catch(error => console.error('Failed to load CoW-Scan:', error));
+```
+
 Follow the on-screen menu to start scanning!
 
 
