@@ -5,7 +5,7 @@ const crawledUrls = new Set();
 const discoveredPaths = new Set();
 const paramMiningResults = new Map();
 let paramList = [];
-const THREAD_LIMIT = 10;
+const THREAD_LIMIT = 40;
 
 // Load wordlist
 async function loadWordlist(url) {
@@ -104,6 +104,7 @@ async function filterByExtension(extension) {
 // Compare responses to identify valid params
 async function compareResponses(baselineText, url, param) {
     try {
+        // GET check
         const singleGetUrl = `${url}?${param}=test`;
         const getResponse = await fetch(singleGetUrl);
         const getText = await getResponse.text();
@@ -113,10 +114,27 @@ async function compareResponses(baselineText, url, param) {
             if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
             paramMiningResults.get(url).push(`${param} (GET)`);
         }
+
+        // POST check
+        const postResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `${param}=test`
+        });
+        const postText = await postResponse.text();
+
+        if (postResponse.ok && baselineText !== postText) {
+            console.log(`🚀 Discovered param: ${url} [POST] with body '${param}=test'`);
+            if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+            paramMiningResults.get(url).push(`${param} (POST)`);
+        }
     } catch (error) {
         console.error(`❌ Error comparing response: ${error.message}`);
     }
 }
+
 
 // Mine parameters using multiple threads
 async function mineParams(url) {
