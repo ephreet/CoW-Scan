@@ -104,49 +104,71 @@ async function filterByExtension(extension) {
 // Compare responses to identify valid params with randomization
 async function compareResponses(baselineText, url, param) {
     try {
-        // Randomize the value of the parameter
-        const randomizedValue = Math.random().toString(36).substring(2, 15); // generates a random string
+        // Generate different test cases
+        const testCases = [
+            Math.random().toString(36).substring(2, 15), // Random string
+            Math.floor(Math.random() * 1000), // Random integer
+			1, // Low integer
+            null // Null value
+        ];
 
-        // GET check
-        const singleGetUrl = `${url}?${param}=${randomizedValue}`;
-        const getResponse = await fetch(singleGetUrl);
-        const getText = await getResponse.text();
+        for (const testCase of testCases) {
+            const value = testCase === null ? '' : testCase;
 
-        if (getResponse.ok && baselineText !== getText) {
-            console.log(`🚀 Discovered param: ${singleGetUrl} [GET]`);
+            // GET check
+            await checkResponse(url, param, value, baselineText, 'GET');
 
-            // Check if the parameter is reflected
-            if (getText.includes(randomizedValue)) {
-                console.log(`💥 Parameter ${param} is reflected in the response [GET]`);
-            } else {
-                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-                paramMiningResults.get(url).push(`${param} (GET)`);
-            }
-        }
-
-        // POST check
-        const postResponse = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: `${param}=${randomizedValue}`
-        });
-        const postText = await postResponse.text();
-
-        if (postResponse.ok && baselineText !== postText) {
-            console.log(`🚀 Discovered param: ${url} [POST] with body '${param}=${randomizedValue}'`);
-
-            // Check if the parameter is reflected
-            if (postText.includes(randomizedValue)) {
-                console.log(`💥 Parameter ${param} is reflected in the response [POST]`);
-            } else {
-                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-                paramMiningResults.get(url).push(`${param} (POST)`);
-            }
+            // POST check
+            await checkResponse(url, param, value, baselineText, 'POST');
         }
     } catch (error) {
         console.error(`❌ Error comparing response: ${error.message}`);
+    }
+}
+
+async function checkResponse(url, param, value, baselineText, method) {
+    try {
+        let response;
+        let responseText;
+
+        if (method === 'GET') {
+            const singleGetUrl = `${url}${url.includes('?') ? '&' : '?'}${param}=${encodeURIComponent(value)}`;
+            response = await fetch(singleGetUrl);
+            responseText = await response.text();
+
+            if (response.ok && baselineText !== responseText) {
+                console.log(`🚀 Discovered param: ${singleGetUrl} [${method}]`);
+
+                if (responseText.includes(value)) {
+                    console.log(`💥 Parameter ${param} is reflected in the response [${method}]`);
+                } else {
+                    if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+                    paramMiningResults.get(url).push(`${param} (${method})`);
+                }
+            }
+        } else if (method === 'POST') {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `${param}=${encodeURIComponent(value)}`
+            });
+            responseText = await response.text();
+
+            if (response.ok && baselineText !== responseText) {
+                console.log(`🚀 Discovered param: ${url} [${method}] with body '${param}=${value}'`);
+
+                if (responseText.includes(value)) {
+                    console.log(`💥 Parameter ${param} is reflected in the response [${method}]`);
+                } else {
+                    if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+                    paramMiningResults.get(url).push(`${param} (${method})`);
+                }
+            }
+        }
+    } catch (error) {
+        console.error(`❌ Error during ${method} check: ${error.message}`);
     }
 }
 
@@ -225,7 +247,9 @@ async function mainMenu() {
 
     switch (choice) {
         case '1':
-            const wordlist = await loadWordlist(wordlistUrl);
+            let customWordlist = prompt("Enter custom wordlist URL (leave empty for default):");
+            if (!customWordlist) customWordlist = wordlistUrl;		
+            const wordlist = await loadWordlist(customWordlist);
             await discoverPaths(wordlist);
 			alert("Done");
             break;
@@ -246,7 +270,9 @@ async function mainMenu() {
             break;
         case '4':
             if (discoveredPaths.size > 0) {
-                paramList = await loadWordlist(paramWordlistUrl);
+				let customWordlist = prompt("Enter custom paramlist URL (leave empty for default):");
+				if (!customWordlist) customWordlist = wordlistUrl;		
+                paramList = await loadWordlist(customWordlist);
                 await mineParamsMenu();
             } else {
                 console.log("❌ No discovered paths available. Please discover paths first.");
