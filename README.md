@@ -17,11 +17,6 @@ It is still pretty green and under *REALLY* lazy development, I started fiddling
 
 ✅ Custom Paths – Add custom paths for targeted discovery.
 
-✅ Limit Scans – Set maximum items to try from the discovery and parameter lists.
-
-✅ Stop on First Match – Option to stop scanning once a valid path or parameter is found.
-
-✅ Resume from Last Match – Resume scans from where you left off.
 
 
 
