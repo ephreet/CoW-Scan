@@ -126,8 +126,9 @@ async function compareResponses(baselineText, url, param) {
     }
 }
 
-async function checkResponse(url, param, value, baselineText, method) {
+async function checkResponse(purl, param, value, baselineText, method) {
     try {
+		let url = purl;
         let response;
         let responseText;
 
@@ -141,10 +142,10 @@ async function checkResponse(url, param, value, baselineText, method) {
 
                 if (responseText.includes(value)) {
                     console.log(`💥 Parameter ${param} is reflected in the response [${method}]`);
-                } else {
-                    if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-                    paramMiningResults.get(url).push(`${param} (${method})`);
-                }
+                } 
+                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+                if (!paramMiningResults.get(url).includes(`${param} (${method})`)) paramMiningResults.get(url).push(`${param} (${method})`);
+
             }
         } else if (method === 'POST') {
             response = await fetch(url, {
@@ -161,10 +162,10 @@ async function checkResponse(url, param, value, baselineText, method) {
 
                 if (responseText.includes(value)) {
                     console.log(`💥 Parameter ${param} is reflected in the response [${method}]`);
-                } else {
-                    if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
-                    paramMiningResults.get(url).push(`${param} (${method})`);
-                }
+                } 
+                if (!paramMiningResults.has(url)) paramMiningResults.set(url, []);
+				if (!paramMiningResults.get(url).includes(`${param} (${method})`)) paramMiningResults.get(url).push(`${param} (${method})`);
+
             }
         }
     } catch (error) {
@@ -217,7 +218,8 @@ async function mineParamsMenu() {
         case '3':
             if (discoveredPaths.size > 0) {
                 for (const path of discoveredPaths) {
-                    await mineParams(`${baseUrl}${path}`);
+                    //await mineParams(`${baseUrl}${path}`);
+					await mineParams(`${path}`);
                 }
             } else {
                 console.log("❌ No discovered paths available.");
@@ -241,9 +243,10 @@ async function mainMenu() {
     console.log(`3. Crawl`);
     console.log(`4. Mine Params ${discoveredPaths.size > 0 ? "" : "(Disabled)"}`);
     console.log(`5. Show Discovered Paths ${discoveredPaths.size > 0 ? "" : "(Disabled)"}`);
-    console.log(`6. Exit`);
+	console.log(`6. Show Discovered Params ${paramMiningResults.size > 0 ? "" : "(Disabled)"}`);
+    console.log(`7. Exit`);
 
-    const choice = prompt("\nChoose an option (1-6):");
+    const choice = prompt("\nChoose an option (1-7):");
 
     switch (choice) {
         case '1':
@@ -289,6 +292,15 @@ async function mainMenu() {
 			alert("Done");
             break;
         case '6':
+            if (paramMiningResults.size > 0) {
+                console.log("\n✅ Discovered Params:");
+                console.log([...paramMiningResults].join("\n"));
+            } else {
+                console.log("❌ No discovered paths available.");
+            }
+			alert("Done");
+            break;			
+        case '7':
             console.log("\n👋 Exiting...");
             return;
         default:
